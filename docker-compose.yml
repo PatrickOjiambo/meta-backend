@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: casper-vault-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: casper-prize-vault
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - casper-vault-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: casper-vault-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://mongodb:27017/casper-prize-vault
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+    networks:
+      - casper-vault-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  casper-vault-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
