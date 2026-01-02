@@ -1,7 +1,6 @@
 import app from "./app.js";
 import { connectDatabase } from "./database.js";
 import { env } from "./env.js";
-import { eventWatcherService } from "./services/index.js";
 
 const port = env.PORT;
 
@@ -10,10 +9,7 @@ async function startServer() {
     // Connect to MongoDB
     await connectDatabase();
 
-    // Start event watcher
-    if (env.NODE_ENV !== "test") {
-      await eventWatcherService.start();
-    }
+
 
     // Start HTTP server
     const server = app.listen(port, "0.0.0.0", () => {
