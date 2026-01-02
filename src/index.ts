@@ -16,10 +16,10 @@ async function startServer() {
     }
 
     // Start HTTP server
-    const server = app.listen(port, () => {
+    const server = app.listen(port, "0.0.0.0", () => {
       /* eslint-disable no-console */
       console.log("🏆 Casper Prize Vault API");
-      console.log(`🚀 Server: http://localhost:${port}`);
+      console.log(`🚀 Server listening on port ${port}`);
       console.log(`📝 Environment: ${env.NODE_ENV}`);
       console.log(`⛓️  Network: ${env.CASPER_NETWORK_NAME}`);
       /* eslint-enable no-console */
