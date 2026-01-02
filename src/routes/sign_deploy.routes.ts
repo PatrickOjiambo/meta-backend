@@ -2,10 +2,11 @@ import express, { Router, Request, Response } from "express";
 import { type SignedDeploySchema, signedDeploySchema } from "../schemas/validation.schemas";
 import { DeployUtil, CLPublicKey, CasperClient } from "casper-js-sdk";
 import { env } from "../env";
+import { standardRateLimiter } from "../middlewares/rate-limit.middleware";
 const NODE_URL = env.CASPER_NODE_URL;
 const router = Router();
 
-router.post('/sign-deploy', async (req: Request, res: Response) => {
+router.post('/sign-deploy',standardRateLimiter, async (req: Request, res: Response) => {
     try {
         console.log('Received sign-deploy request with body size:', JSON.stringify(req.body).length);
         const parsed = signedDeploySchema.safeParse(req.body);
