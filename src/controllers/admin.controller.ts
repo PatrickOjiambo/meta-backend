@@ -8,9 +8,20 @@ import type {
   TriggerUnstakeBody,
 } from "../schemas/validation.schemas.js";
 import { casperContractService } from "../services/casper-contract.service.js";
-import type { CasperEvent } from "../services/event-watcher.service.js";
-import { eventWatcherService } from "../services/event-watcher.service.js";
+// Event watcher temporarily disabled for deployment
+// import type { CasperEvent } from "../services/event-watcher.service.js";
+// import { eventWatcherService } from "../services/event-watcher.service.js";
 import { winnerSelectionEngine } from "../services/winner-selection.service.js";
+
+// Temporary type definition for CasperEvent until event watcher is fully implemented
+interface CasperEvent {
+  event_id: string;
+  deploy_hash: string;
+  block_height: number;
+  timestamp: string;
+  event_type: string;
+  data: any;
+}
 
 /**
  * Trigger unstake processing for users
@@ -277,8 +288,9 @@ export async function manualDeposit(
       },
     };
 
-    // Process the event
-    await eventWatcherService.processEvent(event);
+    // Process the event (disabled until event watcher is fully implemented)
+    // await eventWatcherService.processEvent(event);
+    console.log("[Admin] Manual deposit event created (event processing disabled):", event);
 
     res.json({
       success: true,
@@ -310,7 +322,8 @@ export async function resyncEvents(
 
     console.log(`[Admin] Resyncing events from block ${from_block} to ${to_block ?? "latest"}`);
 
-    await eventWatcherService.replayEvents(from_block, to_block);
+    // await eventWatcherService.replayEvents(from_block, to_block);
+    console.log("[Admin] Event replay disabled until event watcher is fully implemented");
 
     res.json({
       success: true,

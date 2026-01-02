@@ -9,7 +9,10 @@ async function startServer() {
     // Connect to MongoDB
     await connectDatabase();
 
-
+    // Start event watcher (disabled for Cloud Run deployment)
+    // if (env.NODE_ENV !== "test") {
+    //   await eventWatcherService.start();
+    // }
 
     // Start HTTP server
     const server = app.listen(port, "0.0.0.0", () => {
@@ -34,7 +37,7 @@ async function startServer() {
     // Graceful shutdown
     process.on("SIGTERM", () => {
       console.log("SIGTERM signal received: closing HTTP server");
-      eventWatcherService.stop();
+      // eventWatcherService.stop();
       server.close(() => {
         console.log("HTTP server closed");
       });
