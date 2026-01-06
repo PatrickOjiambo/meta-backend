@@ -41,6 +41,9 @@ RUN pnpm install --prod --frozen-lockfile
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy WASM resources (not included in TypeScript build)
+COPY --from=builder /app/src/resources ./dist/src/resources
+
 # Change ownership to app user
 RUN chown -R nodejs:nodejs /app
 
