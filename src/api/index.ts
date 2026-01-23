@@ -5,6 +5,7 @@ import adminRoutes from "../routes/admin.routes.js";
 import userRoutes from "../routes/user.routes.js";
 import emojis from "./emojis.js";
 import signDeployRoutes from "../routes/sign_deploy.routes.js";
+import withdrawRoutes from "../routes/withdraw.routes.js";
 const router = express.Router();
 
 router.get<object, MessageResponse>("/", (req, res) => {
@@ -17,5 +18,7 @@ router.use("/emojis", emojis);
 router.use("/", userRoutes);
 router.use("/admin", adminRoutes);
 router.use("/deploy", signDeployRoutes);
+router.use("/unstake", withdrawRoutes);
 
 export default router;
+

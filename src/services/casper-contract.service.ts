@@ -30,6 +30,39 @@ export class CasperContractService {
   }
 
   /**
+   * Process withdrawals by calling the contract's withdraw entry point.
+   * This processes the unstake queue in the contract, sending CSPR to users
+   * whose unstaking period has completed.
+   */
+  async processWithdrawals(): Promise<DeployResult> {
+    console.log("[Withdraw] Processing withdrawals from contract unstake queue");
+
+    // Get next nonce
+    const nonce = await nonceManager.getNextNonce();
+
+    // In production, this would:
+    // 1. Create a deploy using casper-js-sdk calling the "withdraw" entry point
+    // 2. Sign it with the admin's private key (ADMIN_PRIVATE_KEY from env)
+    // 3. Send to the network
+    // 4. Return the actual deploy hash
+
+    const stubDeployHash = `withdraw_${Date.now()}_nonce_${nonce}`;
+
+    console.log(`[Withdraw] Deploy hash: ${stubDeployHash}`);
+    console.log(`[Withdraw] Nonce used: ${nonce}`);
+    console.log(`[Withdraw] Contract: ${this.contractHash}`);
+    console.log(`[Withdraw] Network: ${this.networkName}`);
+
+    // Simulate network delay
+    await this.simulateNetworkDelay();
+
+    return {
+      deploy_hash: stubDeployHash,
+      success: true,
+    };
+  }
+
+  /**
    * STUB: Trigger unstake for users whose bonding period has elapsed
    * In production: Signs and sends a deploy calling the "process_unstake" entry point
    */

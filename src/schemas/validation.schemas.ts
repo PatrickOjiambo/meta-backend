@@ -96,8 +96,21 @@ export const signedDeploySchema = z.object({
   // signedDeploy: z.any()
 })
 
+// Unstake/Withdraw schemas
+export const unstakeRequestBodySchema = z.object({
+  public_key: casperPublicKeySchema,
+  amount: amountSchema,
+  deploy_hash: z.string().min(1),
+});
+
+export const processWithdrawalsBodySchema = z.object({
+  dry_run: z.boolean().default(false),
+});
+
 // Type exports
 export type SignedDeploySchema = z.infer<typeof signedDeploySchema>;
+export type UnstakeRequestBody = z.infer<typeof unstakeRequestBodySchema>;
+export type ProcessWithdrawalsBody = z.infer<typeof processWithdrawalsBodySchema>;
 export type GetUserStatsParams = z.infer<typeof getUserStatsParamsSchema>;
 export type GetUserHistoryParams = z.infer<typeof getUserHistoryParamsSchema>;
 export type GetUserHistoryQuery = z.infer<typeof getUserHistoryQuerySchema>;
