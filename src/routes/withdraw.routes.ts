@@ -5,6 +5,7 @@ import { Treasury } from "../models/treasury.model.js";
 import { casperContractService } from "../services/casper-contract.service.js";
 import { standardRateLimiter } from "../middlewares/rate-limit.middleware.js";
 import { adminAuthMiddleware } from "../middlewares/admin-auth.middleware.js";
+import { deployVerificationService } from "../services/deploy-verification.service.js";
 
 const router = Router();
 
@@ -44,32 +45,59 @@ router.post("/request", standardRateLimiter, async (req: Request, res: Response)
 
     await unstakeRequest.save();
 
-    // Also update the treasury record to track pending unstake
-    await Treasury.findOneAndUpdate(
-      { public_key },
-      {
-        $inc: { pending_unstake: amount },
-        $push: {
-          transaction_history: {
-            type: "Unstake",
-            amount,
-            deploy_hash,
-            timestamp: new Date(),
-          },
-        },
-        last_activity_date: new Date(),
-      },
-      { upsert: false }
-    );
-
     console.log(`[Unstake] New unstake request recorded: ${deploy_hash} for ${public_key}`);
 
+    // Start verification process in the background
+    verifyAndProcessUnstake(unstakeRequest).catch(error => {
+      console.error(`[Unstake] Error in background verification for ${deploy_hash}:`, error);
+    });
+
     res.status(201).json({
-      message: "Unstake request recorded successfully",
-      request: unstakeRequest,
+      message: "Unstake request recorded successfully. Verification in progress.",
+      request: {
+        public_key: unstakeRequest.public_key,
+        amount: unstakeRequest.amount,
+        deploy_hash: unstakeRequest.deploy_hash,
+        status: unstakeRequest.status,
+        request_timestamp: unstakeRequest.request_timestamp,
+      },
     });
   } catch (error) {
     console.error("Error recording unstake request:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/v1/unstake/status/:deployHash
+ * Check the status of a specific unstake request
+ */
+router.get("/status/:deployHash", standardRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const { deployHash } = req.params;
+
+    const unstakeRequest = await UnstakeRequest.findOne({ deploy_hash: deployHash });
+
+    if (!unstakeRequest) {
+      return res.status(404).json({
+        error: "Unstake request not found",
+      });
+    }
+
+    res.json({
+      unstake: {
+        public_key: unstakeRequest.public_key,
+        amount: unstakeRequest.amount,
+        deploy_hash: unstakeRequest.deploy_hash,
+        status: unstakeRequest.status,
+        request_timestamp: unstakeRequest.request_timestamp,
+        processed_timestamp: unstakeRequest.processed_timestamp,
+        error_message: unstakeRequest.error_message,
+        withdraw_deploy_hash: unstakeRequest.withdraw_deploy_hash,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unstake status:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -183,5 +211,63 @@ router.post("/process-withdrawals", adminAuthMiddleware, async (req: Request, re
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+/**
+ * Background function to verify and process an unstake request
+ */
+async function verifyAndProcessUnstake(unstakeRequest: any) {
+  try {
+    console.log(`[Unstake] Starting verification for ${unstakeRequest.deploy_hash}`);
+
+    // Update status to processing
+    unstakeRequest.status = "processing";
+    await unstakeRequest.save();
+
+    // Verify the deploy on-chain
+    const deployStatus = await deployVerificationService.verifyDeploy(unstakeRequest.deploy_hash);
+
+    if (deployStatus.success && deployStatus.status === "processed") {
+      // Deploy was successful, update treasury
+      console.log(`[Unstake] Deploy ${unstakeRequest.deploy_hash} verified successfully`);
+
+      // Update treasury record to track pending unstake
+      await Treasury.findOneAndUpdate(
+        { public_key: unstakeRequest.public_key },
+        {
+          $inc: { pending_unstake: unstakeRequest.amount },
+          $push: {
+            transaction_history: {
+              type: "Unstake",
+              amount: unstakeRequest.amount,
+              deploy_hash: unstakeRequest.deploy_hash,
+              timestamp: new Date(),
+            },
+          },
+          last_activity_date: new Date(),
+        },
+        { upsert: false }
+      );
+
+      // Keep status as pending (not completed yet, awaiting withdrawal processing)
+      unstakeRequest.status = "pending";
+      
+      console.log(`[Unstake] Unstake ${unstakeRequest.deploy_hash} verified and recorded in treasury`);
+    } else {
+      // Deploy failed or couldn't be verified
+      console.log(`[Unstake] Deploy ${unstakeRequest.deploy_hash} failed or couldn't be verified: ${deployStatus.status}`);
+      
+      unstakeRequest.status = "failed";
+      unstakeRequest.error_message = deployStatus.errorMessage || `Deploy status: ${deployStatus.status}`;
+    }
+
+    await unstakeRequest.save();
+  } catch (error) {
+    console.error(`[Unstake] Error processing unstake ${unstakeRequest.deploy_hash}:`, error);
+    
+    unstakeRequest.status = "failed";
+    unstakeRequest.error_message = error instanceof Error ? error.message : "Unknown error during verification";
+    await unstakeRequest.save();
+  }
+}
 
 export default router;

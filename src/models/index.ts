@@ -4,4 +4,6 @@ export { Snapshot, type ISnapshot, type ISnapshotEntry } from "./snapshot.model.
 export { AdminNonce, type IAdminNonce } from "./admin-nonce.model.js";
 export { DrawHistory, type IDrawHistory, type IWinner } from "./draw-history.model.js";
 export { UnstakeRequest, type IUnstakeRequest, type UnstakeRequestStatus } from "./unstake-request.model.js";
+export { DepositRequest, type IDepositRequest, type DepositRequestStatus } from "./deposit-request.model.js";
+
 
